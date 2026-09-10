@@ -452,8 +452,6 @@ export function getEstruturaInfo(item: UfvMatrixItem): {
   };
 }
 
-export const SUPERVISOR_NOTE = 'Todas as usinas que pertenciam ao supervisor Jeferson Félix foram atribuídas para o supervisor Edy.';
-
 export interface FormulaOptions {
   sheetName: string;
   ufvCell: string;

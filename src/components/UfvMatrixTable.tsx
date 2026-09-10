@@ -46,8 +46,7 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
       const matchesSearch =
         item.ufvName.toLowerCase().includes(q) ||
         (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
-        (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q)) ||
-        ((q.includes('jeferson') || q.includes('felix') || q.includes('félix')) && item.supervisor === 'Edy');
+        (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q));
 
       const matchesSupervisor =
         selectedSupervisor === 'ALL' || item.supervisor === selectedSupervisor;
@@ -172,7 +171,7 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
               <option value="ALL">Supervisores: Todos ({UFV_MATRIX_DATA.length})</option>
               {supervisors.map((s) => (
                 <option key={s} value={s}>
-                  {s} ({supervisorCounts[s]} usinas){s === 'Edy' ? ' — Inclui ex-Jeferson Félix' : ''}
+                  {s} ({supervisorCounts[s]} usinas)
                 </option>
               ))}
             </select>

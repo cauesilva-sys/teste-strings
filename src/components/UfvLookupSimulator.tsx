@@ -40,14 +40,13 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
         return false;
       }
 
-      // 2. Search query filter (also recognizing Jeferson Félix transferred to Edy)
+      // 2. Search query filter
       const q = searchQuery.toLowerCase().trim();
       if (q) {
         const matchesSearch =
           item.ufvName.toLowerCase().includes(q) ||
           (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
-          (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q)) ||
-          ((q.includes('jeferson') || q.includes('felix') || q.includes('félix')) && item.supervisor === 'Edy');
+          (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q));
 
         if (!matchesSearch) return false;
       }
@@ -177,7 +176,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
               <option value="ALL">Todos os Supervisores ({UFV_MATRIX_DATA.length} usinas)</option>
               {supervisorsList.map((sup) => (
                 <option key={sup.name} value={sup.name}>
-                  {sup.name} ({sup.count} usinas){sup.name === 'Edy' ? ' — Inclui usinas ex-Jeferson Félix' : ''}
+                  {sup.name} ({sup.count} usinas)
                 </option>
               ))}
             </select>
@@ -211,32 +210,6 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                 </button>
               ))}
             </div>
-
-            {/* Aviso Informativo de Atribuição Jeferson Félix -> Edy */}
-            {selectedSupervisor === 'Edy' ? (
-              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs text-amber-900">
-                <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-amber-950 block text-[11px] uppercase tracking-wide">
-                    Atribuição de Supervisão:
-                  </span>
-                  <p className="text-[11px] text-amber-800 leading-snug mt-0.5">
-                    Todas as usinas que pertenciam ao supervisor <strong>Jeferson Félix</strong> foram atribuídas para o supervisor <strong>Edy</strong> ({supervisorsList.find(s => s.name === 'Edy')?.count || 38} usinas no total).
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-[11px] text-slate-500 flex items-center justify-between">
-                <span>💡 Usinas de Jeferson Félix atribuídas a <strong>Edy</strong></span>
-                <button
-                  type="button"
-                  onClick={() => handleSupervisorChange('Edy')}
-                  className="text-amber-700 hover:text-amber-900 font-semibold underline text-[11px]"
-                >
-                  Ver usinas de Edy
-                </button>
-              </div>
-            )}
           </div>
 
           {/* 2. Seleção de Usina (dinâmica por supervisor) */}
@@ -425,16 +398,9 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                 </span>
               </div>
               {currentUfv.supervisor && (
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1.5 text-xs text-slate-200 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700 shadow-xs">
-                    <User className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Supervisor Responsável: <strong className="text-amber-300">{currentUfv.supervisor}</strong></span>
-                  </div>
-                  {currentUfv.supervisor === 'Edy' && (
-                    <span className="hidden sm:inline-flex items-center text-[10px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-sans">
-                      Atribuído a Edy
-                    </span>
-                  )}
+                <div className="flex items-center space-x-1.5 text-xs text-slate-200 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700 shadow-xs">
+                  <User className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Supervisor Responsável: <strong className="text-amber-300">{currentUfv.supervisor}</strong></span>
                 </div>
               )}
             </div>
