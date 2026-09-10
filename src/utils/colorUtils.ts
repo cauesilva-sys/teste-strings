@@ -13,7 +13,7 @@ export function getStringColorStyle(
   allStringsInUfv: number[],
   isSelected: boolean = false
 ): StringColorStyle {
-  if (val === undefined || val === null) {
+  if (val === undefined || val === null || !allStringsInUfv || allStringsInUfv.length === 0) {
     return {
       cardBg: 'bg-white',
       badgeBg: 'bg-slate-100',
@@ -41,6 +41,18 @@ export function getStringColorStyle(
   const sortedUnique = Array.from(new Set(allStringsInUfv)).sort((a, b) => b - a);
   const rankIndex = sortedUnique.indexOf(val);
   const maxVal = sortedUnique[0];
+
+  if (rankIndex < 0) {
+    return {
+      cardBg: 'bg-slate-100 text-slate-700 font-medium border-slate-200',
+      badgeBg: 'bg-slate-200',
+      badgeText: 'text-slate-700 font-mono font-bold',
+      textColor: 'text-slate-700 font-medium',
+      borderColor: 'border-slate-300',
+      isDarkGray: false,
+      rankIndex: -1,
+    };
+  }
 
   // Highest value in the plant -> Dark Gray (Cinza Mais Escuro)
   if (val === maxVal) {

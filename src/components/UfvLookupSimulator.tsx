@@ -63,10 +63,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
   const handleSelectUfv = (ufvId: string) => {
     setSelectedUfvId(ufvId);
     setFilterStringCount('ALL');
-    const newUfv = UFV_MATRIX_DATA.find((item) => item.id === ufvId);
-    if (newUfv && selectedInverterIndex >= newUfv.strings.length) {
-      setSelectedInverterIndex(0);
-    }
+    setSelectedInverterIndex(0);
   };
 
   // Handler to change supervisor
@@ -74,45 +71,50 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
     setSelectedSupervisor(supervisor);
     setSearchQuery('');
     setFilterStringCount('ALL');
+    setSelectedInverterIndex(0);
 
-    const availableUfvs = supervisor === 'ALL'
-      ? UFV_MATRIX_DATA
-      : UFV_MATRIX_DATA.filter((u) => u.supervisor === supervisor);
+    const firstUfv = supervisor === 'ALL'
+      ? UFV_MATRIX_DATA[0]
+      : UFV_MATRIX_DATA.find((u) => u.supervisor === supervisor);
 
-    if (availableUfvs.length > 0) {
-      const isCurrentInAvailable = availableUfvs.some((u) => u.id === selectedUfvId);
-      if (!isCurrentInAvailable) {
-        setSelectedUfvId(availableUfvs[0].id);
-        setSelectedInverterIndex(0);
-      }
+    if (firstUfv) {
+      setSelectedUfvId(firstUfv.id);
     }
   };
 
-  // Auto-select first result if filters leave current UFV out of scope
-  useEffect(() => {
-    if (filteredUfvs.length > 0) {
-      const isCurrentInFiltered = filteredUfvs.some((u) => u.id === selectedUfvId);
-      if (!isCurrentInFiltered) {
-        setSelectedUfvId(filteredUfvs[0].id);
-        setSelectedInverterIndex(0);
-      }
-    }
+  // Current active UFV, guaranteed to always be in sync with filtered items
+  const currentUfv = useMemo(() => {
+    const foundInFiltered = filteredUfvs.find((item) => item.id === selectedUfvId);
+    if (foundInFiltered) return foundInFiltered;
+
+    if (filteredUfvs.length > 0) return filteredUfvs[0];
+
+    return UFV_MATRIX_DATA.find((item) => item.id === selectedUfvId) || UFV_MATRIX_DATA[0];
   }, [filteredUfvs, selectedUfvId]);
 
-  // Current selected UFV
-  const currentUfv = useMemo(() => {
-    return UFV_MATRIX_DATA.find((item) => item.id === selectedUfvId) || UFV_MATRIX_DATA[0];
-  }, [selectedUfvId]);
+  // Keep selectedUfvId in sync with currentUfv without triggering extra renders
+  useEffect(() => {
+    if (currentUfv && currentUfv.id !== selectedUfvId) {
+      setSelectedUfvId(currentUfv.id);
+    }
+  }, [currentUfv, selectedUfvId]);
+
+  // Safe Inverter Index to prevent any out-of-bounds error
+  const safeInverterIndex = useMemo(() => {
+    if (!currentUfv || !currentUfv.strings || currentUfv.strings.length === 0) return 0;
+    if (selectedInverterIndex >= currentUfv.strings.length) return 0;
+    return selectedInverterIndex;
+  }, [currentUfv, selectedInverterIndex]);
 
   const currentUnit = currentUfv.unit || 'strings';
 
   // Selected Inverter strings count
   const stringCount = useMemo(() => {
-    if (selectedInverterIndex < currentUfv.strings.length) {
-      return currentUfv.strings[selectedInverterIndex];
+    if (currentUfv.strings && safeInverterIndex < currentUfv.strings.length) {
+      return currentUfv.strings[safeInverterIndex];
     }
-    return 0; // Inverter not present in this UFV or zero strings
-  }, [currentUfv, selectedInverterIndex]);
+    return 0;
+  }, [currentUfv, safeInverterIndex]);
 
   // Structure/Tracker information helper
   const estrutura = useMemo(() => {
@@ -121,14 +123,15 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
 
   // Total strings and average for this UFV
   const ufvStats = useMemo(() => {
-    const total = currentUfv.strings.reduce((acc, curr) => acc + curr, 0);
-    const count = currentUfv.strings.length;
+    const strings = currentUfv.strings || [];
+    const total = strings.reduce((acc, curr) => acc + (curr || 0), 0);
+    const count = strings.length;
     const avg = count > 0 ? (total / count).toFixed(1) : '0';
     return { total, count, avg };
   }, [currentUfv]);
 
   // Quick Formula text for this selection
-  const formulaText = `=ÍNDICE(Matriz!B2:BU120; CORRESP("${currentUfv.ufvName}"; Matriz!A2:A120; 0); CORRESP("${getInversorLabel(selectedInverterIndex, currentUfv)}"; Matriz!B1:BU1; 0))`;
+  const formulaText = `=ÍNDICE(Matriz!B2:BU120; CORRESP("${currentUfv.ufvName}"; Matriz!A2:A120; 0); CORRESP("${getInversorLabel(safeInverterIndex, currentUfv)}"; Matriz!B1:BU1; 0))`;
 
   const handleCopyFormula = () => {
     navigator.clipboard.writeText(formulaText);
@@ -239,7 +242,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             {/* Menu Suspenso de Usina (Exibe apenas as usinas daquele supervisor) */}
             <select
               id="ufv-select"
-              value={selectedUfvId}
+              value={currentUfv.id}
               onChange={(e) => handleSelectUfv(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer"
             >
@@ -269,7 +272,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             {/* Lista Interativa Dinâmica */}
             <div className="w-full bg-slate-50 border border-slate-200 rounded-xl max-h-52 overflow-y-auto p-1.5 space-y-1 scrollbar-thin">
               {filteredUfvs.map((ufv) => {
-                const isSelected = ufv.id === selectedUfvId;
+                const isSelected = ufv.id === currentUfv.id;
                 const uniqueVals = Array.from<number>(new Set(ufv.strings)).sort((a, b) => b - a);
                 const hasVariation = uniqueVals.length > 1;
 
@@ -331,15 +334,15 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
 
             <select
               id="inverter-select"
-              value={selectedInverterIndex}
+              value={safeInverterIndex}
               onChange={(e) => setSelectedInverterIndex(Number(e.target.value))}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 cursor-pointer shadow-2xs"
             >
-              {Array.from({ length: Math.max(currentUfv.strings.length, 10) }).map((_, idx) => {
+              {Array.from({ length: Math.max(currentUfv.strings?.length || 0, 1) }).map((_, idx) => {
                 const label = getInversorLabel(idx, currentUfv);
-                const hasData = idx < currentUfv.strings.length;
+                const hasData = currentUfv.strings && idx < currentUfv.strings.length;
                 const strVal = hasData ? currentUfv.strings[idx] : null;
-                const maxVal = Math.max(...currentUfv.strings);
+                const maxVal = currentUfv.strings && currentUfv.strings.length > 0 ? Math.max(...currentUfv.strings) : 0;
                 const isMax = strVal === maxVal && currentUfv.strings.length > 0;
 
                 return (
@@ -359,7 +362,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             </div>
             <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200 scrollbar-thin">
               {currentUfv.strings.map((str, idx) => {
-                const isSelected = selectedInverterIndex === idx;
+                const isSelected = safeInverterIndex === idx;
                 const colorStyle = getStringColorStyle(str, currentUfv.strings, isSelected);
 
                 return (
@@ -637,9 +640,9 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             const isMatchingFilter = filterStringCount === 'ALL' || str === filterStringCount;
             if (!isMatchingFilter) return null; // Filter out non-matching inverters when filter is active
 
-            const isActive = selectedInverterIndex === idx;
+            const isActive = safeInverterIndex === idx;
             const colorStyle = getStringColorStyle(str, currentUfv.strings, isActive);
-            const maxVal = Math.max(...currentUfv.strings);
+            const maxVal = currentUfv.strings.length > 0 ? Math.max(...currentUfv.strings) : 0;
             const isMax = str === maxVal;
 
             return (
