@@ -185,7 +185,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             </select>
 
             {/* Botões Rápidos de Supervisor */}
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
+            <div className="flex flex-wrap gap-1.5 pt-0.5 notranslate" translate="no">
               <button
                 type="button"
                 onClick={() => handleSupervisorChange('ALL')}
@@ -195,7 +195,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                Todos ({UFV_MATRIX_DATA.length})
+                <span>Todos ({UFV_MATRIX_DATA.length})</span>
               </button>
               {supervisorsList.map((sup) => (
                 <button
