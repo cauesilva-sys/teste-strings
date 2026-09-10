@@ -39,7 +39,10 @@ export const FormulaGenerator: React.FC = () => {
     UFV_MATRIX_DATA.forEach((item) => {
       let row = `"${item.ufvName}"`;
       for (let i = 0; i < 72; i++) {
-        const val = i < item.strings.length ? item.strings[i] : '';
+        const startNum = item.inverterStartNumber || 1;
+        const localIdx = i - (startNum - 1);
+        const hasVal = localIdx >= 0 && localIdx < item.strings.length;
+        const val = hasVal ? item.strings[localIdx] : '';
         row += `;${val}`;
       }
       csvContent += row + '\n';

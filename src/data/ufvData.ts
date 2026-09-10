@@ -1,7 +1,8 @@
 export interface UfvMatrixItem {
   id: string;
   ufvName: string;
-  strings: number[]; // Index 0 is Inversor 01, Index 1 is Inversor 02, etc.
+  strings: number[]; // Index 0 is Inversor 01, Index 1 is Inversor 02, etc. (or starting from inverterStartNumber)
+  inverterStartNumber?: number; // Defaults to 1 (e.g. 7 for Tapera 02 which uses Inv 07 to Inv 14)
   unit?: string;     // 'strings' (default) or 'kWp'
   supervisor?: string;
   potenciaUfv?: string;        // e.g., "1.000 kW", "2.500 kW", "960 kW"
@@ -16,62 +17,62 @@ export interface UfvMatrixItem {
 export const UFV_MATRIX_DATA: UfvMatrixItem[] = [
   { id: '1', ufvName: 'UFV Presidente Epitácio (PEP)', strings: [12, 12, 11, 12, 11, 11, 12, 12], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '93' },
   { id: '2', ufvName: 'UFV Tapera 01 (TPR)', strings: [204, 223.5, 243, 204, 204, 204], unit: 'kWp', supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 167, inversorModelo: 'Huawei', trackerValue: 'Fixa', obs: 'INV 01, 04, 05 e 06 (340W): 204 kWp | INV 02 (misto 340W/405W): 223,5 kWp | INV 03 (405W): 243 kWp' },
-  { id: '3', ufvName: 'UFV Tapera 02 (TPR)', strings: [151.2, 151.2, 151.2, 151.2, 151.2, 151.2, 136.08, 136.08], unit: 'kWp', supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '30', obs: 'Inversores 01 a 06 (540W): 280 módulos (10 strings x 28 placas) = 151,2 kWp cada | Inversores 07 e 08 (Inv. 13 e 14, 540W): 252 módulos (9 strings x 28 placas) = 136,08 kWp cada' },
-  { id: '4', ufvName: 'UFV Tapera 03 (TPR)', strings: [10, 10, 11, 10, 11, 10, 11, 10], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '27' },
+  { id: '3', ufvName: 'UFV Tapera 02 (TPR)', strings: [166, 166, 166, 151, 151, 151, 151, 151], inverterStartNumber: 7, unit: 'kWp', supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '30', obs: 'Inversores 07, 08 e 09: 166 kWp cada | Inversores 10, 11, 12, 13 e 14: 151 kWp cada' },
+  { id: '4', ufvName: 'UFV Tapera 03 (TPR)', strings: [151, 151, 166, 151, 166, 151, 166, 151], inverterStartNumber: 15, unit: 'kWp', supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '27', obs: 'Inversores 17, 19 e 21: 166 kWp cada | Inversores 15, 16, 18, 20 e 22: 151 kWp cada' },
   { id: '5', ufvName: 'UFV Mãe do Rio 01 (MDR)', strings: [14, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '70' },
   { id: '6', ufvName: 'UFV Mãe do Rio 02 (MDR)', strings: [14, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '70' },
   { id: '7', ufvName: 'UFV Mãe do Rio 03 (MDR)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '70' },
   { id: '8', ufvName: 'UFV Mãe do Rio 04 (MDR)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '70' },
   { id: '9', ufvName: 'UFV Andradina I (ADU)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', modeloTracker: 'STi', trackerValue: '27' },
   { id: '10', ufvName: 'UFV Andradina II (ADD)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', modeloTracker: 'STi', trackerValue: '27' },
-  { id: '11', ufvName: 'UFV Ibotirama (IBO)', strings: [13, 13, 13, 13, 13, 13, 14], supervisor: 'Jeferson Félix', potenciaUfv: '875 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '67' },
-  { id: '12', ufvName: 'UFV São Mateus I (MTU)', strings: [13, 13, 13, 12, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '750 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '62' },
-  { id: '13', ufvName: 'UFV São Mateus II (MTD)', strings: [12, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '625 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '46' },
+  { id: '11', ufvName: 'UFV Ibotirama (IBO)', strings: [13, 13, 13, 13, 13, 13, 14], supervisor: 'Edy', potenciaUfv: '875 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '67' },
+  { id: '12', ufvName: 'UFV São Mateus I (MTU)', strings: [13, 13, 13, 12, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '750 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '62' },
+  { id: '13', ufvName: 'UFV São Mateus II (MTD)', strings: [12, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '625 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '46' },
   { id: '14', ufvName: 'UFV Salto de Pirapora I (RaiaDrogasil) (SAP)', strings: [14, 13, 13, 13, 13, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '108' },
   { id: '15', ufvName: 'UFV Salto de Pirapora II (RaiaDrogasil) (SAP)', strings: [13, 13, 13, 13, 14, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '108' },
   { id: '16', ufvName: 'UFV Salto de Pirapora III (Raízen) (SAP)', strings: [13, 13, 13, 13, 14, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '108' },
   { id: '17', ufvName: 'UFV Salto de Pirapora IV (Raízen) (SAP)', strings: [13, 13, 13, 13, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '750 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '80' },
   { id: '18', ufvName: 'UFV Frutal (FRU)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', modeloTracker: 'STi Norland', trackerValue: '63' },
-  { id: '19', ufvName: 'UFV Guarda Mor I (GMU)', strings: [10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Jeferson Félix', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
-  { id: '20', ufvName: 'UFV Guarda Mor II (GMD)', strings: [10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Jeferson Félix', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
-  { id: '21', ufvName: 'UFV Guarda Mor III (GMT)', strings: [10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Jeferson Félix', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
+  { id: '19', ufvName: 'UFV Guarda Mor I (GMU)', strings: [10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Edy', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
+  { id: '20', ufvName: 'UFV Guarda Mor II (GMD)', strings: [10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Edy', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
+  { id: '21', ufvName: 'UFV Guarda Mor III (GMT)', strings: [10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Edy', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
   { id: '22', ufvName: 'UFV Ibiá I (IBU)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
   { id: '23', ufvName: 'UFV Ibiá II (IBD)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
   { id: '24', ufvName: 'UFV Ibiá III (IBT)', strings: [12, 12, 12, 11, 11, 11, 11, 12, 12, 12, 12, 12, 11, 11, 11, 11, 11, 11, 11, 11], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: '57' },
   { id: '25', ufvName: 'UFV Iraí de Minas I (IMU)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
   { id: '26', ufvName: 'UFV Iraí de Minas II (IMD)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', trackerValue: '63' },
-  { id: '27', ufvName: 'UFV Niquelândia I - 01 (NQL)', strings: [15, 15, 15, 15, 15, 15, 15, 15], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
-  { id: '28', ufvName: 'UFV Niquelândia I - 02 (NQL)', strings: [15, 15, 15, 15, 15, 15, 15, 15], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
-  { id: '29', ufvName: 'UFV Niquelândia I - 03 (NQL)', strings: [15, 15, 15, 15, 15], supervisor: 'Jeferson Félix', potenciaUfv: '625 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
-  { id: '30', ufvName: 'UFV Niquelândia II (NQD)', strings: [11, 11, 11, 11], supervisor: 'Jeferson Félix', potenciaUfv: '500 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: 'Fixa' },
+  { id: '27', ufvName: 'UFV Niquelândia I - 01 (NQL)', strings: [15, 15, 15, 15, 15, 15, 15, 15], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
+  { id: '28', ufvName: 'UFV Niquelândia I - 02 (NQL)', strings: [15, 15, 15, 15, 15, 15, 15, 15], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
+  { id: '29', ufvName: 'UFV Niquelândia I - 03 (NQL)', strings: [15, 15, 15, 15, 15], supervisor: 'Edy', potenciaUfv: '625 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: 'Fixa' },
+  { id: '30', ufvName: 'UFV Niquelândia II (NQD)', strings: [11, 11, 11, 11], supervisor: 'Edy', potenciaUfv: '500 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: 'Fixa' },
   { id: '31', ufvName: 'UFV Nova Ponte (NOP)', strings: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11], supervisor: 'Rafael Leal', potenciaUfv: '2.500 kW', potenciaInversor: 100, inversorModelo: 'Huawei', modeloTracker: 'STi Norland', trackerValue: '63' },
   { id: '32', ufvName: 'UFV Pirangi I - 01 (PGU)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '108' },
   { id: '33', ufvName: 'UFV Pirangi I - 02 (PGU)', strings: [18, 18], supervisor: 'Rafael Leal', potenciaUfv: '350 kW', potenciaInversor: 175, inversorModelo: 'Huawei', trackerValue: '36' },
   { id: '34', ufvName: 'UFV Pirangi III - 03 (PGT)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '27' },
   { id: '35', ufvName: 'UFV Pirangi III - 04 (PGT)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '27' },
-  { id: '36', ufvName: 'UFV Leopoldo Bulhões I (Claro) (LEB)', strings: [14, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '70' },
-  { id: '37', ufvName: 'UFV Leopoldo Bulhões II (Raízen) (LEB)', strings: [13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '500 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '34' },
-  { id: '38', ufvName: 'UFV Buritizeiro 01 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72', obs: 'Apenas o inversor 05 possui módulos bifaciais nas strings 01 a 13. Por esse motivo, apresenta potência superior aos demais inversores.' },
-  { id: '39', ufvName: 'UFV Buritizeiro 02 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
-  { id: '40', ufvName: 'UFV Buritizeiro 03 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
-  { id: '41', ufvName: 'UFV Buritizeiro 04 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
-  { id: '42', ufvName: 'UFV Buritizeiro 05 (BZU)', strings: [18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '480 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
+  { id: '36', ufvName: 'UFV Leopoldo Bulhões I (Claro) (LEB)', strings: [14, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '70' },
+  { id: '37', ufvName: 'UFV Leopoldo Bulhões II (Raízen) (LEB)', strings: [13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '500 kW', potenciaInversor: 125, inversorModelo: 'Solis', trackerValue: '34' },
+  { id: '38', ufvName: 'UFV Buritizeiro 01 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72', obs: 'Apenas o inversor 05 possui módulos bifaciais nas strings 01 a 13. Por esse motivo, apresenta potência superior aos demais inversores.' },
+  { id: '39', ufvName: 'UFV Buritizeiro 02 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
+  { id: '40', ufvName: 'UFV Buritizeiro 03 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
+  { id: '41', ufvName: 'UFV Buritizeiro 04 (BZU)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
+  { id: '42', ufvName: 'UFV Buritizeiro 05 (BZU)', strings: [18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '480 kW', potenciaInversor: 96, inversorModelo: 'Huawei', trackerValue: '72' },
   { id: '43', ufvName: 'UFV Campestre 01 (CPE)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '70' },
   { id: '44', ufvName: 'UFV Campestre 02 (CPE)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '70' },
   { id: '45', ufvName: 'UFV Campestre 03 (CPE)', strings: [17, 17, 17, 17], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 250, inversorModelo: 'Huawei', trackerValue: '33' },
   { id: '46', ufvName: 'UFV Campestre 04 (CPE)', strings: [17, 17, 17, 17], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 250, inversorModelo: 'Huawei', trackerValue: '33' },
-  { id: '47', ufvName: 'UFV Oliveira dos Brejinhos (OLB)', strings: [13, 13, 13, 14, 13, 14, 14, 14, 14, 14, 14, 13, 14, 14, 14, 13, 14, 14, 14, 14, 14, 13, 13, 13, 14, 13, 14, 14, 14, 14, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14], supervisor: 'Jeferson Félix', potenciaUfv: '5.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: '183' },
+  { id: '47', ufvName: 'UFV Oliveira dos Brejinhos (OLB)', strings: [13, 13, 13, 14, 13, 14, 14, 14, 14, 14, 14, 13, 14, 14, 14, 13, 14, 14, 14, 14, 14, 13, 13, 13, 14, 13, 14, 14, 14, 14, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14], supervisor: 'Edy', potenciaUfv: '5.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: '183' },
   { id: '48', ufvName: 'UFV Canas (CAN)', strings: [12, 12, 14, 13, 12, 8, 8, 8, 12, 8, 12, 14, 13, 8, 8, 12, 14, 14, 14, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '2.700 kW', potenciaInversor: 123, inversorModelo: 'Sungrow', trackerValue: '94' },
   { id: '49', ufvName: 'UFV Cachoeira Paulista (CAP)', strings: [26, 26, 26, 26], supervisor: 'Rafael Leal', potenciaUfv: '875 kW', potenciaInversor: 219, inversorModelo: 'Huawei', trackerValue: '104' },
-  { id: '50', ufvName: 'UFV Luís Eduardo Magalhães I (Magalu) (LEM)', strings: [20, 20, 19, 20, 19, 19], supervisor: 'Jeferson Félix', potenciaUfv: '1.110 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
-  { id: '51', ufvName: 'UFV Luís Eduardo Magalhães II (Magalu) (LEM)', strings: [20, 20, 19, 20, 19, 19], supervisor: 'Jeferson Félix', potenciaUfv: '1.110 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
-  { id: '52', ufvName: 'UFV Luís Eduardo Magalhães III (Raízen) (LEM)', strings: [20, 20, 20], supervisor: 'Jeferson Félix', potenciaUfv: '555 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
-  { id: '53', ufvName: 'UFV Luís Eduardo Magalhães IV (LEM)', strings: [14, 14, 14, 14, 14], supervisor: 'Jeferson Félix', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '68' },
-  { id: '54', ufvName: 'UFV Luís Eduardo Magalhães V (LEM)', strings: [14, 14, 14, 14, 14], supervisor: 'Jeferson Félix', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '68' },
-  { id: '55', ufvName: 'UFV Luís Eduardo Magalhães VI (LEM)', strings: [14, 14], supervisor: 'Jeferson Félix', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '24' },
-  { id: '56', ufvName: 'UFV Sítio do Mato (STM)', strings: [12, 12, 12, 12, 12, 12, 12], supervisor: 'Jeferson Félix', potenciaUfv: '875 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '28' },
-  { id: '57', ufvName: 'UFV Bom Jesus da Lapa (BJL)', strings: [14, 14, 14, 14, 14, 14, 13, 14], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: '37' },
-  { id: '58', ufvName: 'UFV Araçuaí (ARA)', strings: [14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14], supervisor: 'Jeferson Félix', potenciaUfv: '2.500 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '182' },
+  { id: '50', ufvName: 'UFV Luís Eduardo Magalhães I (Magalu) (LEM)', strings: [20, 20, 19, 20, 19, 19], supervisor: 'Edy', potenciaUfv: '1.110 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
+  { id: '51', ufvName: 'UFV Luís Eduardo Magalhães II (Magalu) (LEM)', strings: [20, 20, 19, 20, 19, 19], supervisor: 'Edy', potenciaUfv: '1.110 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
+  { id: '52', ufvName: 'UFV Luís Eduardo Magalhães III (Raízen) (LEM)', strings: [20, 20, 20], supervisor: 'Edy', potenciaUfv: '555 kW', potenciaInversor: 165, inversorModelo: 'Huawei', trackerValue: 'Fixa' },
+  { id: '53', ufvName: 'UFV Luís Eduardo Magalhães IV (LEM)', strings: [14, 14, 14, 14, 14], supervisor: 'Edy', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '68' },
+  { id: '54', ufvName: 'UFV Luís Eduardo Magalhães V (LEM)', strings: [14, 14, 14, 14, 14], supervisor: 'Edy', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '68' },
+  { id: '55', ufvName: 'UFV Luís Eduardo Magalhães VI (LEM)', strings: [14, 14], supervisor: 'Edy', potenciaUfv: '1.075 kW', potenciaInversor: 215, inversorModelo: 'Huawei', modeloTracker: 'Convert', trackerValue: '24' },
+  { id: '56', ufvName: 'UFV Sítio do Mato (STM)', strings: [12, 12, 12, 12, 12, 12, 12], supervisor: 'Edy', potenciaUfv: '875 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '28' },
+  { id: '57', ufvName: 'UFV Bom Jesus da Lapa (BJL)', strings: [14, 14, 14, 14, 14, 14, 13, 14], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Sungrow', trackerValue: '37' },
+  { id: '58', ufvName: 'UFV Araçuaí (ARA)', strings: [14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14], supervisor: 'Edy', potenciaUfv: '2.500 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '182' },
   { id: '59', ufvName: 'UFV Guarantã 01 (GUA)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '27' },
   { id: '60', ufvName: 'UFV Guarantã 02 (GUA)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '27' },
   { id: '61', ufvName: 'UFV Guarantã 03 (GUA)', strings: [18, 18, 18, 18, 18, 18], supervisor: 'Rafael Leal', potenciaUfv: '960 kW', potenciaInversor: 160, inversorModelo: 'Huawei', trackerValue: '27' },
@@ -83,12 +84,12 @@ export const UFV_MATRIX_DATA: UfvMatrixItem[] = [
   { id: '67', ufvName: 'UFV São Bento do Una 02 (SBU)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '210' },
   { id: '68', ufvName: 'UFV São Bento do Una 03 (SBU)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '210' },
   { id: '69', ufvName: 'UFV São Bento do Una 04 (SBU)', strings: [14, 14, 14, 14, 14], supervisor: 'Henrique Oliveira', potenciaUfv: '1.000 kW', potenciaInversor: 200, inversorModelo: 'Huawei', trackerValue: '210' },
-  { id: '70', ufvName: 'UFV Várzea da Palma I (Milkway) (VPU)', strings: [8, 18, 18, 18, 18, 18, 18], supervisor: 'Jeferson Félix', potenciaUfv: '770 kW', potenciaInversor: 110, inversorModelo: 'Sungrow', trackerValue: '10' },
-  { id: '71', ufvName: 'UFV Várzea da Palma II - 01 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11, 11, 10, 11, 11, 11, 11, 11, 11, 11], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
-  { id: '72', ufvName: 'UFV Várzea da Palma II - 02 (VPD)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
-  { id: '73', ufvName: 'UFV Várzea da Palma II - 03 (VPD)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
-  { id: '74', ufvName: 'UFV Várzea da Palma II - 04 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], supervisor: 'Jeferson Félix', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
-  { id: '75', ufvName: 'UFV Várzea da Palma II - 05 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11], supervisor: 'Jeferson Félix', potenciaUfv: '420 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
+  { id: '70', ufvName: 'UFV Várzea da Palma I (Milkway) (VPU)', strings: [8, 18, 18, 18, 18, 18, 18], supervisor: 'Edy', potenciaUfv: '770 kW', potenciaInversor: 110, inversorModelo: 'Sungrow', trackerValue: '10' },
+  { id: '71', ufvName: 'UFV Várzea da Palma II - 01 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11, 11, 10, 11, 11, 11, 11, 11, 11, 11], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
+  { id: '72', ufvName: 'UFV Várzea da Palma II - 02 (VPD)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
+  { id: '73', ufvName: 'UFV Várzea da Palma II - 03 (VPD)', strings: [18, 18, 18, 17, 17, 18, 18, 18, 17, 17], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
+  { id: '74', ufvName: 'UFV Várzea da Palma II - 04 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], supervisor: 'Edy', potenciaUfv: '960 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
+  { id: '75', ufvName: 'UFV Várzea da Palma II - 05 (VPD)', strings: [11, 11, 11, 11, 11, 11, 11], supervisor: 'Edy', potenciaUfv: '420 kW', potenciaInversor: 60, inversorModelo: 'ABB', trackerValue: '71' },
   { id: '76', ufvName: 'UFV Uruguaiana IV (URQ)', strings: [16, 16, 16, 15, 15, 15, 15, 15, 15, 15], supervisor: 'Jardel Alves', potenciaUfv: '2.500 kW', potenciaInversor: 250, inversorModelo: 'Sungrow', trackerValue: '51' },
   { id: '77', ufvName: 'UFV Uruguaiana II (URD)', strings: [15, 15, 15, 15, 15, 15, 15, 14, 14, 14], supervisor: 'Jardel Alves', potenciaUfv: '2.500 kW', potenciaInversor: 250, inversorModelo: 'Sungrow', trackerValue: '49' },
   { id: '78', ufvName: 'UFV Uruguaiana I (URU)', strings: [16, 16, 16, 16, 16, 16, 16, 17, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16], supervisor: 'Jardel Alves', potenciaUfv: '5.000 kW', potenciaInversor: 250, inversorModelo: 'Sungrow', trackerValue: '107' },
@@ -127,11 +128,11 @@ export const UFV_MATRIX_DATA: UfvMatrixItem[] = [
   { id: '111', ufvName: 'UFV Rio das Pedras II (Flora) (RDP)', strings: [24, 24, 24, 24], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 250, inversorModelo: 'Huawei', trackerValue: '96' },
   { id: '112', ufvName: 'UFV Rio das Pedras III (Flora) (RDP)', strings: [24, 24, 24, 24], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 250, inversorModelo: 'Huawei', trackerValue: '96' },
   { id: '113', ufvName: 'UFV Rio das Pedras IV (Raízen) (RDP)', strings: [24, 24, 24, 24], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 250, inversorModelo: 'Huawei', trackerValue: '96' },
-  { id: '114', ufvName: 'UFV Irecê 01 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '78' },
-  { id: '115', ufvName: 'UFV Irecê 02 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '78' },
-  { id: '116', ufvName: 'UFV Irecê 03 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '150' },
-  { id: '117', ufvName: 'UFV Irecê 04 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '88' },
-  { id: '118', ufvName: 'UFV Irecê 05 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Jeferson Félix', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '114' },
+  { id: '114', ufvName: 'UFV Irecê 01 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '78' },
+  { id: '115', ufvName: 'UFV Irecê 02 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '78' },
+  { id: '116', ufvName: 'UFV Irecê 03 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '150' },
+  { id: '117', ufvName: 'UFV Irecê 04 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '88' },
+  { id: '118', ufvName: 'UFV Irecê 05 (IRE)', strings: [13, 13, 13, 13, 13, 13, 13, 13], supervisor: 'Edy', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '114' },
   { id: '119', ufvName: 'UFV Panorama 01 (PAN)', strings: [14, 14, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '30' },
   { id: '120', ufvName: 'UFV Panorama 02 (PAN)', strings: [14, 14, 14, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '1.000 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '30' },
   { id: '121', ufvName: 'UFV Panorama 03 (PAN)', strings: [6, 14, 14], supervisor: 'Rafael Leal', potenciaUfv: '500 kW', potenciaInversor: 125, inversorModelo: 'Canadian', trackerValue: '15' },
@@ -282,8 +283,8 @@ export function getDemandaContratada(item: UfvMatrixItem): string {
 export const POTENCIA_PICO_MAP: Record<string, string> = {
   '1': '1.318,26 kWp',
   '2': '1.282,50 kWp',
-  '3': '1.263,60 kWp',
-  '4': '1.263,60 kWp',
+  '3': '1.253,00 kWp',
+  '4': '1.253,00 kWp',
   '5': '1.323,00 kWp',
   '6': '1.323,00 kWp',
   '7': '1.375,50 kWp',
@@ -415,9 +416,16 @@ export function getPotenciaPico(item: UfvMatrixItem): string {
   return `${sum} kWp`;
 }
 
-export function getInversorLabel(index: number): string {
-  const num = index + 1;
+export function getInversorLabel(index: number, item?: UfvMatrixItem): string {
+  const start = item?.inverterStartNumber || 1;
+  const num = index + start;
   return `Inversor ${num < 10 ? '0' + num : num}`;
+}
+
+export function getInversorShortLabel(index: number, item?: UfvMatrixItem): string {
+  const start = item?.inverterStartNumber || 1;
+  const num = index + start;
+  return `Inv ${num < 10 ? '0' + num : num}`;
 }
 
 export function getEstruturaInfo(item: UfvMatrixItem): {
@@ -443,6 +451,8 @@ export function getEstruturaInfo(item: UfvMatrixItem): {
     detalheText: `${item.trackerValue} rastreadores solares${modStr}`
   };
 }
+
+export const SUPERVISOR_NOTE = 'Todas as usinas que pertenciam ao supervisor Jeferson Félix foram atribuídas para o supervisor Edy.';
 
 export interface FormulaOptions {
   sheetName: string;

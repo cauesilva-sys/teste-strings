@@ -21,7 +21,15 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
     UFV_MATRIX_DATA.forEach((u) => {
       if (u.supervisor) set.add(u.supervisor);
     });
-    return Array.from(set);
+    return Array.from(set).sort();
+  }, []);
+
+  const supervisorCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UFV_MATRIX_DATA.forEach((u) => {
+      if (u.supervisor) counts[u.supervisor] = (counts[u.supervisor] || 0) + 1;
+    });
+    return counts;
   }, []);
 
   // Unique string values across all plants for the filter
@@ -38,7 +46,8 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
       const matchesSearch =
         item.ufvName.toLowerCase().includes(q) ||
         (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
-        (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q));
+        (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q)) ||
+        ((q.includes('jeferson') || q.includes('felix') || q.includes('félix')) && item.supervisor === 'Edy');
 
       const matchesSupervisor =
         selectedSupervisor === 'ALL' || item.supervisor === selectedSupervisor;
@@ -96,7 +105,10 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
       const est = getEstruturaInfo(u);
       let row = `"${u.ufvName}";"${u.potenciaUfv || ''}";"${u.inversorModelo || ''}";"${u.potenciaInversor || ''}";"${est.badgeLabel}";"${u.supervisor || ''}"`;
       for (let i = 0; i < 72; i++) {
-        row += `;${i < u.strings.length ? u.strings[i] : ''}`;
+        const startNum = u.inverterStartNumber || 1;
+        const localIdx = i - (startNum - 1);
+        const hasVal = localIdx >= 0 && localIdx < u.strings.length;
+        row += `;${hasVal ? u.strings[localIdx] : ''}`;
       }
       csv += row + '\n';
     });
@@ -157,10 +169,10 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
               onChange={(e) => setSelectedSupervisor(e.target.value)}
               className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
             >
-              <option value="ALL">Supervisores ({supervisors.length})</option>
+              <option value="ALL">Supervisores: Todos ({UFV_MATRIX_DATA.length})</option>
               {supervisors.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {s} ({supervisorCounts[s]} usinas){s === 'Edy' ? ' — Inclui ex-Jeferson Félix' : ''}
                 </option>
               ))}
             </select>
@@ -261,7 +273,7 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
             <tbody className="divide-y divide-slate-200/80 font-mono">
               {filteredData.map((ufv) => {
                 const est = getEstruturaInfo(ufv);
-                const uniqueVals = Array.from(new Set(ufv.strings)).sort((a, b) => b - a);
+                const uniqueVals = Array.from<number>(new Set(ufv.strings)).sort((a, b) => b - a);
                 const hasVariation = uniqueVals.length > 1;
 
                 return (
@@ -330,8 +342,10 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
 
                     {/* Inverters Strings Values */}
                     {Array.from({ length: maxColsToDisplay }).map((_, idx) => {
-                      const hasVal = idx < ufv.strings.length;
-                      const stringVal = hasVal ? ufv.strings[idx] : null;
+                      const startNum = ufv.inverterStartNumber || 1;
+                      const localIdx = idx - (startNum - 1);
+                      const hasVal = localIdx >= 0 && localIdx < ufv.strings.length;
+                      const stringVal = hasVal ? ufv.strings[localIdx] : null;
 
                       let cellBg = 'bg-white text-slate-300';
                       const isFilterTarget = selectedTargetString !== 'ALL' && stringVal === Number(selectedTargetString);
@@ -347,13 +361,13 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
                           key={idx}
                           onClick={() => {
                             if (hasVal && onSelectCell) {
-                              onSelectCell(ufv.id, idx);
+                              onSelectCell(ufv.id, localIdx);
                             }
                           }}
                           className={`p-2 border-r border-slate-200 text-center text-xs transition-all cursor-pointer select-none font-mono relative ${cellBg} ${
                             isFilterTarget ? 'ring-2 ring-amber-500 scale-105 z-10 font-black shadow-md' : ''
                           } ${isFilterNonTarget ? 'opacity-35 blur-[0.3px]' : ''}`}
-                          title={hasVal ? `UFV ${ufv.ufvName} - ${getInversorLabel(idx)}: ${stringVal} ${ufv.unit === 'kWp' ? 'kWp (Potência)' : 'strings'}` : 'N/A'}
+                          title={hasVal ? `UFV ${ufv.ufvName} - ${getInversorLabel(localIdx, ufv)}: ${stringVal} ${ufv.unit === 'kWp' ? 'kWp (Potência)' : 'strings'}` : 'N/A'}
                         >
                           {stringVal !== null ? stringVal : '-'}
                         </td>

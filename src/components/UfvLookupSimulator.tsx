@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Zap, Check, Copy, ArrowRight, Activity, Building2, User, Cpu, Info, FileSpreadsheet, Compass, ShieldCheck, Gauge, Layers, Filter } from 'lucide-react';
-import { UFV_MATRIX_DATA, UfvMatrixItem, getInversorLabel, getEstruturaInfo, getDemandaContratada, getPotenciaPico } from '../data/ufvData';
+import { UFV_MATRIX_DATA, UfvMatrixItem, getInversorLabel, getInversorShortLabel, getEstruturaInfo, getDemandaContratada, getPotenciaPico } from '../data/ufvData';
 import { getStringColorStyle } from '../utils/colorUtils';
 
 interface UfvLookupSimulatorProps {
@@ -8,6 +8,7 @@ interface UfvLookupSimulatorProps {
 }
 
 export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFormulas }) => {
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string>('ALL');
   const [selectedUfvId, setSelectedUfvId] = useState<string>('1'); // PEP default
   const [selectedInverterIndex, setSelectedInverterIndex] = useState<number>(0); // Inversor 01 default
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -15,22 +16,49 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
   const [onlyVariations, setOnlyVariations] = useState<boolean>(false);
   const [filterStringCount, setFilterStringCount] = useState<number | 'ALL'>('ALL');
 
-  // Filter UFV list for select dropdown
+  // Compute unique supervisors with plant counts
+  const supervisorsList = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UFV_MATRIX_DATA.forEach((u) => {
+      if (u.supervisor) {
+        counts[u.supervisor] = (counts[u.supervisor] || 0) + 1;
+      }
+    });
+    return Object.keys(counts)
+      .sort()
+      .map((name) => ({
+        name,
+        count: counts[name],
+      }));
+  }, []);
+
+  // Filter UFV list dynamically based on selected supervisor, search query and variations
   const filteredUfvs = useMemo(() => {
     return UFV_MATRIX_DATA.filter((item) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        item.ufvName.toLowerCase().includes(q) ||
-        (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
-        (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q));
+      // 1. Supervisor filter
+      if (selectedSupervisor !== 'ALL' && item.supervisor !== selectedSupervisor) {
+        return false;
+      }
 
+      // 2. Search query filter (also recognizing Jeferson Félix transferred to Edy)
+      const q = searchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesSearch =
+          item.ufvName.toLowerCase().includes(q) ||
+          (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
+          (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q)) ||
+          ((q.includes('jeferson') || q.includes('felix') || q.includes('félix')) && item.supervisor === 'Edy');
+
+        if (!matchesSearch) return false;
+      }
+
+      // 3. Variation filter
       const hasVariation = new Set(item.strings).size > 1;
       const matchesVariation = !onlyVariations || hasVariation;
 
-      return matchesSearch && matchesVariation;
+      return matchesVariation;
     });
-  }, [searchQuery, onlyVariations]);
+  }, [selectedSupervisor, searchQuery, onlyVariations]);
 
   // Handler to select a UFV safely
   const handleSelectUfv = (ufvId: string) => {
@@ -42,15 +70,35 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
     }
   };
 
-  // Auto-select first result if search filters out the currently selected UFV
-  useEffect(() => {
-    if (searchQuery.trim() && filteredUfvs.length > 0) {
-      const isCurrentInFiltered = filteredUfvs.some((u) => u.id === selectedUfvId);
-      if (!isCurrentInFiltered) {
-        handleSelectUfv(filteredUfvs[0].id);
+  // Handler to change supervisor
+  const handleSupervisorChange = (supervisor: string) => {
+    setSelectedSupervisor(supervisor);
+    setSearchQuery('');
+    setFilterStringCount('ALL');
+
+    const availableUfvs = supervisor === 'ALL'
+      ? UFV_MATRIX_DATA
+      : UFV_MATRIX_DATA.filter((u) => u.supervisor === supervisor);
+
+    if (availableUfvs.length > 0) {
+      const isCurrentInAvailable = availableUfvs.some((u) => u.id === selectedUfvId);
+      if (!isCurrentInAvailable) {
+        setSelectedUfvId(availableUfvs[0].id);
+        setSelectedInverterIndex(0);
       }
     }
-  }, [searchQuery, filteredUfvs, selectedUfvId]);
+  };
+
+  // Auto-select first result if filters leave current UFV out of scope
+  useEffect(() => {
+    if (filteredUfvs.length > 0) {
+      const isCurrentInFiltered = filteredUfvs.some((u) => u.id === selectedUfvId);
+      if (!isCurrentInFiltered) {
+        setSelectedUfvId(filteredUfvs[0].id);
+        setSelectedInverterIndex(0);
+      }
+    }
+  }, [filteredUfvs, selectedUfvId]);
 
   // Current selected UFV
   const currentUfv = useMemo(() => {
@@ -81,7 +129,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
   }, [currentUfv]);
 
   // Quick Formula text for this selection
-  const formulaText = `=ÍNDICE(Matriz!B2:BU120; CORRESP("${currentUfv.ufvName}"; Matriz!A2:A120; 0); CORRESP("${getInversorLabel(selectedInverterIndex)}"; Matriz!B1:BU1; 0))`;
+  const formulaText = `=ÍNDICE(Matriz!B2:BU120; CORRESP("${currentUfv.ufvName}"; Matriz!A2:A120; 0); CORRESP("${getInversorLabel(selectedInverterIndex, currentUfv)}"; Matriz!B1:BU1; 0))`;
 
   const handleCopyFormula = () => {
     navigator.clipboard.writeText(formulaText);
@@ -105,11 +153,98 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             </span>
           </div>
 
-          {/* UFV Search & Select */}
+          {/* 1. Filtro por Supervisor */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                1. Selecionar Nome da UFV (Usina)
+              <label htmlFor="supervisor-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                <User className="w-3.5 h-3.5 text-amber-600" />
+                <span>1. Filtro por Supervisor</span>
+              </label>
+              <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-semibold">
+                {selectedSupervisor === 'ALL'
+                  ? `${UFV_MATRIX_DATA.length} usinas`
+                  : `${filteredUfvs.length} usinas`}
+              </span>
+            </div>
+
+            {/* Menu Suspenso de Supervisor */}
+            <select
+              id="supervisor-select"
+              value={selectedSupervisor}
+              onChange={(e) => handleSupervisorChange(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer"
+            >
+              <option value="ALL">Todos os Supervisores ({UFV_MATRIX_DATA.length} usinas)</option>
+              {supervisorsList.map((sup) => (
+                <option key={sup.name} value={sup.name}>
+                  {sup.name} ({sup.count} usinas){sup.name === 'Edy' ? ' — Inclui usinas ex-Jeferson Félix' : ''}
+                </option>
+              ))}
+            </select>
+
+            {/* Botões Rápidos de Supervisor */}
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleSupervisorChange('ALL')}
+                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                  selectedSupervisor === 'ALL'
+                    ? 'bg-slate-900 text-amber-400 border-slate-900 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Todos ({UFV_MATRIX_DATA.length})
+              </button>
+              {supervisorsList.map((sup) => (
+                <button
+                  key={sup.name}
+                  type="button"
+                  onClick={() => handleSupervisorChange(sup.name)}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                    selectedSupervisor === sup.name
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 font-bold shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:text-amber-900'
+                  }`}
+                >
+                  <span>{sup.name}</span>
+                  <span className="ml-1 text-[10px] opacity-75 font-mono">({sup.count})</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Aviso Informativo de Atribuição Jeferson Félix -> Edy */}
+            {selectedSupervisor === 'Edy' ? (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs text-amber-900">
+                <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-950 block text-[11px] uppercase tracking-wide">
+                    Atribuição de Supervisão:
+                  </span>
+                  <p className="text-[11px] text-amber-800 leading-snug mt-0.5">
+                    Todas as usinas que pertenciam ao supervisor <strong>Jeferson Félix</strong> foram atribuídas para o supervisor <strong>Edy</strong> ({supervisorsList.find(s => s.name === 'Edy')?.count || 38} usinas no total).
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg text-[11px] text-slate-500 flex items-center justify-between">
+                <span>💡 Usinas de Jeferson Félix atribuídas a <strong>Edy</strong></span>
+                <button
+                  type="button"
+                  onClick={() => handleSupervisorChange('Edy')}
+                  className="text-amber-700 hover:text-amber-900 font-semibold underline text-[11px]"
+                >
+                  Ver usinas de Edy
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Seleção de Usina (dinâmica por supervisor) */}
+          <div className="space-y-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label htmlFor="ufv-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                <span>2. Seleção de Usina</span>
               </label>
 
               {/* Filter for plants with string variations */}
@@ -121,28 +256,48 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
                 }`}
-                title="Filtrar apenas usinas que possuem número de strings diferente nos seus inversores (ex: CAN, PRA)"
+                title="Filtrar apenas usinas que possuem número de strings diferente nos seus inversores"
               >
                 <Layers className="w-3 h-3 text-amber-700" />
-                <span>Com Variação ({UFV_MATRIX_DATA.filter((u) => new Set(u.strings).size > 1).length})</span>
+                <span>Com Variação ({filteredUfvs.filter((u) => new Set(u.strings).size > 1).length})</span>
               </button>
             </div>
 
+            {/* Menu Suspenso de Usina (Exibe apenas as usinas daquele supervisor) */}
+            <select
+              id="ufv-select"
+              value={selectedUfvId}
+              onChange={(e) => handleSelectUfv(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer"
+            >
+              {filteredUfvs.map((ufv) => (
+                <option key={ufv.id} value={ufv.id}>
+                  {ufv.ufvName} — {ufv.potenciaUfv || ''} ({ufv.inversorModelo || 'Geral'}{selectedSupervisor === 'ALL' && ufv.supervisor ? ` • ${ufv.supervisor}` : ''})
+                </option>
+              ))}
+            </select>
+
+            {/* Campo de Busca Rápida */}
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
-                placeholder="Buscar UFV por nome ou modelo (ex: CAN, PEP, Huawei, Solis)..."
+                placeholder={
+                  selectedSupervisor === 'ALL'
+                    ? "Buscar UFV por nome ou modelo (ex: CAN, Huawei, Solis)..."
+                    : `Buscar entre as ${filteredUfvs.length} usinas de ${selectedSupervisor}...`
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
               />
             </div>
 
-            <div className="w-full bg-slate-50 border border-slate-200 rounded-xl max-h-56 overflow-y-auto p-1.5 space-y-1 scrollbar-thin">
+            {/* Lista Interativa Dinâmica */}
+            <div className="w-full bg-slate-50 border border-slate-200 rounded-xl max-h-52 overflow-y-auto p-1.5 space-y-1 scrollbar-thin">
               {filteredUfvs.map((ufv) => {
                 const isSelected = ufv.id === selectedUfvId;
-                const uniqueVals = Array.from(new Set(ufv.strings)).sort((a, b) => b - a);
+                const uniqueVals = Array.from<number>(new Set(ufv.strings)).sort((a, b) => b - a);
                 const hasVariation = uniqueVals.length > 1;
 
                 return (
@@ -166,25 +321,35 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                         </span>
                       )}
                     </div>
-                    <span className={`text-[11px] font-mono flex-shrink-0 ml-2 ${isSelected ? 'text-slate-950/90 font-semibold' : 'text-slate-500'}`}>
-                      {ufv.potenciaUfv || ''} {ufv.inversorModelo ? `• ${ufv.inversorModelo}` : ''}
-                    </span>
+                    <div className="flex items-center space-x-1.5 flex-shrink-0 ml-2">
+                      {selectedSupervisor === 'ALL' && ufv.supervisor && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          isSelected ? 'bg-slate-950/20 text-slate-950 font-bold' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {ufv.supervisor}
+                        </span>
+                      )}
+                      <span className={`text-[11px] font-mono ${isSelected ? 'text-slate-950/90 font-semibold' : 'text-slate-500'}`}>
+                        {ufv.potenciaUfv || ''}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
               {filteredUfvs.length === 0 && (
                 <div className="py-6 text-slate-400 text-xs text-center font-sans">
-                  Nenhuma UFV encontrada para "{searchQuery}"
+                  Nenhuma UFV encontrada {selectedSupervisor !== 'ALL' ? `para o supervisor ${selectedSupervisor}` : ''} {searchQuery ? `com "${searchQuery}"` : ''}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Inverter Select */}
-          <div className="space-y-2">
+          {/* 3. Seleção de Inversor */}
+          <div className="space-y-2 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                2. Selecionar Inversor
+              <label htmlFor="inverter-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                <Cpu className="w-3.5 h-3.5 text-amber-600" />
+                <span>3. Selecionar Inversor</span>
               </label>
               <span className="text-xs text-amber-700 font-semibold">
                 {currentUfv.strings.length} inversores alocados
@@ -192,12 +357,13 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             </div>
 
             <select
+              id="inverter-select"
               value={selectedInverterIndex}
               onChange={(e) => setSelectedInverterIndex(Number(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 cursor-pointer shadow-2xs"
             >
               {Array.from({ length: Math.max(currentUfv.strings.length, 10) }).map((_, idx) => {
-                const label = getInversorLabel(idx);
+                const label = getInversorLabel(idx, currentUfv);
                 const hasData = idx < currentUfv.strings.length;
                 const strVal = hasData ? currentUfv.strings[idx] : null;
                 const maxVal = Math.max(...currentUfv.strings);
@@ -229,9 +395,9 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                     type="button"
                     onClick={() => setSelectedInverterIndex(idx)}
                     className={`px-2.5 py-1.5 text-xs rounded-lg font-mono transition-all border flex items-center space-x-1 ${colorStyle.cardBg}`}
-                    title={`Inversor ${idx + 1}: ${str} ${currentUnit === 'kWp' ? 'kWp (Potência)' : currentUnit}`}
+                    title={`${getInversorLabel(idx, currentUfv)}: ${str} ${currentUnit === 'kWp' ? 'kWp (Potência)' : currentUnit}`}
                   >
-                    <span>Inv {idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}</span>
+                    <span>{getInversorShortLabel(idx, currentUfv)}</span>
                     <span className={`px-1 rounded text-[10px] font-bold ${
                       isSelected ? 'bg-slate-950 text-amber-300' : colorStyle.badgeBg + ' ' + colorStyle.badgeText
                     }`}>
@@ -259,9 +425,16 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                 </span>
               </div>
               {currentUfv.supervisor && (
-                <div className="flex items-center space-x-1.5 text-xs text-slate-300 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
-                  <User className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Supervisor Responsável: <strong>{currentUfv.supervisor}</strong></span>
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5 text-xs text-slate-200 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700 shadow-xs">
+                    <User className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Supervisor Responsável: <strong className="text-amber-300">{currentUfv.supervisor}</strong></span>
+                  </div>
+                  {currentUfv.supervisor === 'Edy' && (
+                    <span className="hidden sm:inline-flex items-center text-[10px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-sans">
+                      Atribuído a Edy
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -271,7 +444,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
               <div>
                 <div className="text-amber-400 text-xs font-mono font-semibold uppercase tracking-wider mb-1 flex items-center space-x-1.5">
                   <Building2 className="w-3.5 h-3.5" />
-                  <span>{currentUfv.ufvName} &bull; {getInversorLabel(selectedInverterIndex)}</span>
+                  <span>{currentUfv.ufvName} &bull; {getInversorLabel(selectedInverterIndex, currentUfv)}</span>
                 </div>
                 <div className="text-slate-300 text-sm font-medium">
                   {currentUnit === 'kWp' ? 'Potência do Inversor:' : 'Quantidade de Strings na Célula:'}
@@ -292,7 +465,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                   <span>Célula Localizada</span>
                 </div>
                 <div className="text-xs text-slate-400 font-mono pt-1">
-                  UFV: <strong className="text-amber-300">{currentUfv.ufvName}</strong> | Inv: <strong className="text-amber-300">{getInversorLabel(selectedInverterIndex)}</strong>
+                  UFV: <strong className="text-amber-300">{currentUfv.ufvName}</strong> | Inv: <strong className="text-amber-300">{getInversorLabel(selectedInverterIndex, currentUfv)}</strong>
                 </div>
                 <div className="text-xs text-slate-300 font-mono pt-1.5 border-t border-slate-700/60 mt-1.5 flex items-center justify-start md:justify-end space-x-1.5">
                   <span className="text-slate-400 font-sans">Demanda Contratada:</span>
@@ -424,7 +597,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
 
         {/* Dynamic Color Legend & Filter Chips if variation exists */}
         {(() => {
-          const sortedUnique = Array.from(new Set(currentUfv.strings)).sort((a, b) => b - a);
+          const sortedUnique = Array.from<number>(new Set(currentUfv.strings)).sort((a, b) => b - a);
 
           return (
             <div className="mb-4 space-y-2">
@@ -446,7 +619,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                   Todas ({currentUfv.strings.length} inv)
                 </button>
 
-                {sortedUnique.map((val) => {
+                {sortedUnique.map((val: number) => {
                   const sampleStyle = getStringColorStyle(val, currentUfv.strings, false);
                   const countInUfv = currentUfv.strings.filter((s) => s === val).length;
                   const isFiltered = filterStringCount === val;
@@ -513,7 +686,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                   <div className={`text-[10px] uppercase font-mono font-bold ${
                     isActive ? 'text-slate-950/80' : 'opacity-80'
                   }`}>
-                    Inv {idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}
+                    {getInversorShortLabel(idx, currentUfv)}
                   </div>
                   {isMax && !isActive && (
                     <span className="text-[9px] uppercase font-bold tracking-tighter bg-slate-950 text-amber-400 px-1 rounded font-mono">

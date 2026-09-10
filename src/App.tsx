@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { UfvLookupSimulator } from './components/UfvLookupSimulator';
 import { FormulaGenerator } from './components/FormulaGenerator';
@@ -9,6 +9,10 @@ import { Sun, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'simulator' | 'formulas' | 'matrix' | 'tutorial'>('simulator');
+
+  useEffect(() => {
+    document.title = 'Consulta de Strings';
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
