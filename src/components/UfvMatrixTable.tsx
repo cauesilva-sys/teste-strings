@@ -10,6 +10,7 @@ interface UfvMatrixTableProps {
 export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('ALL');
+  const [selectedBrand, setSelectedBrand] = useState<string>('ALL');
   const [selectedStructure, setSelectedStructure] = useState<string>('ALL');
   const [selectedVariation, setSelectedVariation] = useState<string>('ALL');
   const [selectedTargetString, setSelectedTargetString] = useState<string>('ALL');
@@ -28,6 +29,24 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
     const counts: Record<string, number> = {};
     UFV_MATRIX_DATA.forEach((u) => {
       if (u.supervisor) counts[u.supervisor] = (counts[u.supervisor] || 0) + 1;
+    });
+    return counts;
+  }, []);
+
+  // Unique inverter brands list
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    UFV_MATRIX_DATA.forEach((u) => {
+      if (u.inversorModelo) set.add(u.inversorModelo);
+    });
+    return Array.from(set).sort();
+  }, []);
+
+  const brandCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UFV_MATRIX_DATA.forEach((u) => {
+      const b = u.inversorModelo || 'Outros';
+      counts[b] = (counts[b] || 0) + 1;
     });
     return counts;
   }, []);
@@ -51,6 +70,9 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
       const matchesSupervisor =
         selectedSupervisor === 'ALL' || item.supervisor === selectedSupervisor;
 
+      const matchesBrand =
+        selectedBrand === 'ALL' || item.inversorModelo === selectedBrand;
+
       const isFixa = !item.trackerValue || item.trackerValue === 'Fixa';
       const matchesStructure =
         selectedStructure === 'ALL' ||
@@ -66,9 +88,9 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
         selectedTargetString === 'ALL' ||
         item.strings.includes(Number(selectedTargetString));
 
-      return matchesSearch && matchesSupervisor && matchesStructure && matchesVariation && matchesTargetString;
+      return matchesSearch && matchesSupervisor && matchesBrand && matchesStructure && matchesVariation && matchesTargetString;
     });
-  }, [searchTerm, selectedSupervisor, selectedStructure, selectedVariation, selectedTargetString]);
+  }, [searchTerm, selectedSupervisor, selectedBrand, selectedStructure, selectedVariation, selectedTargetString]);
 
   // Overall Statistics
   const overallStats = useMemo(() => {
@@ -150,12 +172,12 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
         </div>
 
         {/* Filter Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-3 border-t border-slate-100">
-          <div className="sm:col-span-4 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pt-3 border-t border-slate-100">
+          <div className="sm:col-span-3 relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input
               type="text"
-              placeholder="Filtrar por UFV, modelo (Huawei, Solis, Canadian)..."
+              placeholder="Filtrar por UFV, modelo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
@@ -166,7 +188,7 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
             <select
               value={selectedSupervisor}
               onChange={(e) => setSelectedSupervisor(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
+              className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
             >
               <option value="ALL">Supervisores: Todos ({UFV_MATRIX_DATA.length})</option>
               {supervisors.map((s) => (
@@ -179,12 +201,27 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
 
           <div className="sm:col-span-2">
             <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
+            >
+              <option value="ALL">Marca: Todas ({brands.length})</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b} ({brandCounts[b]} usinas)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2">
+            <select
               value={selectedVariation}
               onChange={(e) => setSelectedVariation(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
+              className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
             >
-              <option value="ALL">Todas as Usinas</option>
-              <option value="VARIATION">Apenas com Variação de Strings</option>
+              <option value="ALL">Variação: Todas</option>
+              <option value="VARIATION">Com Variação</option>
             </select>
           </div>
 
@@ -192,7 +229,7 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
             <select
               value={selectedTargetString}
               onChange={(e) => setSelectedTargetString(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
+              className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 font-medium"
             >
               <option value="ALL">Qtd. Strings (Todas)</option>
               {allAvailableStrings.map((val) => (
@@ -203,12 +240,13 @@ export const UfvMatrixTable: React.FC<UfvMatrixTableProps> = ({ onSelectCell }) 
             </select>
           </div>
 
-          <div className="sm:col-span-2 flex items-center justify-end space-x-2">
+          <div className="sm:col-span-1 flex items-center justify-end">
             <button
               onClick={() => setMaxColsToDisplay(maxColsToDisplay === 72 ? 30 : 72)}
-              className="w-full text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl hover:bg-amber-100 transition text-center"
+              className="w-full text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-2 rounded-xl hover:bg-amber-100 transition text-center truncate"
+              title={maxColsToDisplay === 72 ? 'Exibir 30 colunas de inversores' : 'Exibir até 72 colunas de inversores'}
             >
-              {maxColsToDisplay === 72 ? 'Exibir 30 cols' : 'Exibir 72 cols'}
+              {maxColsToDisplay === 72 ? '30 col' : '72 col'}
             </button>
           </div>
         </div>

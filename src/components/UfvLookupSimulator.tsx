@@ -9,6 +9,7 @@ interface UfvLookupSimulatorProps {
 
 export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFormulas }) => {
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('ALL');
+  const [selectedBrand, setSelectedBrand] = useState<string>('ALL');
   const [selectedUfvId, setSelectedUfvId] = useState<string>('1'); // PEP default
   const [selectedInverterIndex, setSelectedInverterIndex] = useState<number>(0); // Inversor 01 default
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -32,7 +33,34 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
       }));
   }, []);
 
-  // Filter UFV list dynamically based on selected supervisor, search query and variations
+  // Compute unique inverter brands with plant counts
+  const brandsList = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UFV_MATRIX_DATA.forEach((u) => {
+      const brand = u.inversorModelo || 'Outros';
+      counts[brand] = (counts[brand] || 0) + 1;
+    });
+    return Object.keys(counts)
+      .sort((a, b) => counts[b] - counts[a]) // Descending by frequency (Huawei, Canadian, Sungrow, Solis, ABB)
+      .map((name) => ({
+        name,
+        count: counts[name],
+      }));
+  }, []);
+
+  // Compute brand counts filtered by active supervisor
+  const supervisorBrandCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UFV_MATRIX_DATA.forEach((u) => {
+      if (selectedSupervisor === 'ALL' || u.supervisor === selectedSupervisor) {
+        const brand = u.inversorModelo || 'Outros';
+        counts[brand] = (counts[brand] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [selectedSupervisor]);
+
+  // Filter UFV list dynamically based on selected supervisor, brand, search query and variations
   const filteredUfvs = useMemo(() => {
     return UFV_MATRIX_DATA.filter((item) => {
       // 1. Supervisor filter
@@ -40,30 +68,63 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
         return false;
       }
 
-      // 2. Search query filter
+      // 2. Brand filter
+      if (selectedBrand !== 'ALL' && (item.inversorModelo || 'Outros') !== selectedBrand) {
+        return false;
+      }
+
+      // 3. Search query filter
       const q = searchQuery.toLowerCase().trim();
       if (q) {
         const matchesSearch =
           item.ufvName.toLowerCase().includes(q) ||
           (item.supervisor && item.supervisor.toLowerCase().includes(q)) ||
-          (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q));
+          (item.inversorModelo && item.inversorModelo.toLowerCase().includes(q)) ||
+          (item.potenciaInversor && `${item.potenciaInversor}`.toLowerCase().includes(q));
 
         if (!matchesSearch) return false;
       }
 
-      // 3. Variation filter
+      // 4. Variation filter
       const hasVariation = new Set(item.strings).size > 1;
       const matchesVariation = !onlyVariations || hasVariation;
 
       return matchesVariation;
     });
-  }, [selectedSupervisor, searchQuery, onlyVariations]);
+  }, [selectedSupervisor, selectedBrand, searchQuery, onlyVariations]);
 
   // Handler to select a UFV safely
   const handleSelectUfv = (ufvId: string) => {
     setSelectedUfvId(ufvId);
     setFilterStringCount('ALL');
     setSelectedInverterIndex(0);
+  };
+
+  // Handler to change inverter brand filter
+  const handleBrandChange = (brand: string) => {
+    setSelectedBrand(brand);
+    setSearchQuery('');
+    setFilterStringCount('ALL');
+    setSelectedInverterIndex(0);
+
+    // Look for first UFV matching this brand within current supervisor
+    let match = UFV_MATRIX_DATA.find((u) => {
+      if (selectedSupervisor !== 'ALL' && u.supervisor !== selectedSupervisor) return false;
+      if (brand !== 'ALL' && (u.inversorModelo || 'Outros') !== brand) return false;
+      return true;
+    });
+
+    // If no plant under current supervisor has this brand, reset supervisor to ALL
+    if (!match && brand !== 'ALL') {
+      match = UFV_MATRIX_DATA.find((u) => (u.inversorModelo || 'Outros') === brand);
+      if (match) {
+        setSelectedSupervisor('ALL');
+      }
+    }
+
+    if (match) {
+      setSelectedUfvId(match.id);
+    }
   };
 
   // Handler to change supervisor
@@ -73,9 +134,19 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
     setFilterStringCount('ALL');
     setSelectedInverterIndex(0);
 
-    const firstUfv = supervisor === 'ALL'
-      ? UFV_MATRIX_DATA[0]
-      : UFV_MATRIX_DATA.find((u) => u.supervisor === supervisor);
+    // Check if current brand exists in new supervisor; if not, reset brand to ALL
+    let firstUfv = UFV_MATRIX_DATA.find((u) => {
+      if (supervisor !== 'ALL' && u.supervisor !== supervisor) return false;
+      if (selectedBrand !== 'ALL' && (u.inversorModelo || 'Outros') !== selectedBrand) return false;
+      return true;
+    });
+
+    if (!firstUfv) {
+      setSelectedBrand('ALL');
+      firstUfv = supervisor === 'ALL'
+        ? UFV_MATRIX_DATA[0]
+        : UFV_MATRIX_DATA.find((u) => u.supervisor === supervisor);
+    }
 
     if (firstUfv) {
       setSelectedUfvId(firstUfv.id);
@@ -215,12 +286,99 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             </div>
           </div>
 
-          {/* 2. Seleção de Usina (dinâmica por supervisor) */}
+          {/* 2. Filtro por Marca do Inversor (Fabricante) */}
+          <div className="space-y-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label htmlFor="brand-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                <Cpu className="w-3.5 h-3.5 text-amber-600" />
+                <span>2. Marca do Inversor</span>
+              </label>
+              <div className="flex items-center space-x-2">
+                {selectedBrand !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => handleBrandChange('ALL')}
+                    className="text-[10px] text-amber-700 hover:text-amber-800 underline font-medium cursor-pointer"
+                  >
+                    Ver todas
+                  </button>
+                )}
+                <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-semibold">
+                  {selectedBrand === 'ALL' ? `${brandsList.length} marcas` : selectedBrand}
+                </span>
+              </div>
+            </div>
+
+            {/* Menu Suspenso de Marca */}
+            <select
+              id="brand-select"
+              value={selectedBrand}
+              onChange={(e) => handleBrandChange(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer"
+            >
+              <option value="ALL">Todas as Marcas ({UFV_MATRIX_DATA.length} usinas)</option>
+              {brandsList.map((b) => {
+                const countInSup = supervisorBrandCounts[b.name] || 0;
+                return (
+                  <option key={b.name} value={b.name}>
+                    {b.name} ({b.count} usinas{selectedSupervisor !== 'ALL' ? ` • ${countInSup} em ${selectedSupervisor}` : ''})
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* Botões Rápidos de Marca */}
+            <div className="flex flex-wrap gap-1.5 pt-0.5 notranslate" translate="no">
+              <button
+                type="button"
+                onClick={() => handleBrandChange('ALL')}
+                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                  selectedBrand === 'ALL'
+                    ? 'bg-slate-900 text-amber-400 border-slate-900 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>Todas ({UFV_MATRIX_DATA.length})</span>
+              </button>
+              {brandsList.map((b) => {
+                const isSelected = selectedBrand === b.name;
+                const inSupCount = supervisorBrandCounts[b.name] || 0;
+                const isNoneInSup = selectedSupervisor !== 'ALL' && inSupCount === 0;
+
+                return (
+                  <button
+                    key={b.name}
+                    type="button"
+                    onClick={() => handleBrandChange(b.name)}
+                    className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border flex items-center space-x-1 ${
+                      isSelected
+                        ? 'bg-amber-500 text-slate-950 border-amber-600 font-bold shadow-xs'
+                        : isNoneInSup
+                        ? 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:text-amber-900'
+                    }`}
+                    title={
+                      selectedSupervisor !== 'ALL'
+                        ? `${b.name}: ${inSupCount} usinas com ${selectedSupervisor} (total ${b.count})`
+                        : `${b.name}: ${b.count} usinas no total`
+                    }
+                  >
+                    <span>{b.name}</span>
+                    <span className={`text-[10px] font-mono ${isSelected ? 'text-slate-950 font-bold' : 'text-slate-500'}`}>
+                      ({selectedSupervisor !== 'ALL' ? inSupCount : b.count})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Seleção de Usina (dinâmica por supervisor e marca) */}
           <div className="space-y-2 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <label htmlFor="ufv-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
                 <Building2 className="w-3.5 h-3.5 text-amber-600" />
-                <span>2. Seleção de Usina</span>
+                <span>3. Seleção de Usina</span>
               </label>
 
               {/* Filter for plants with string variations */}
@@ -239,7 +397,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
               </button>
             </div>
 
-            {/* Menu Suspenso de Usina (Exibe apenas as usinas daquele supervisor) */}
+            {/* Menu Suspenso de Usina (Exibe apenas as usinas daquele supervisor e marca) */}
             <select
               id="ufv-select"
               value={currentUfv.id}
@@ -248,7 +406,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
             >
               {filteredUfvs.map((ufv) => (
                 <option key={ufv.id} value={ufv.id}>
-                  {ufv.ufvName} — {ufv.potenciaUfv || ''} ({ufv.inversorModelo || 'Geral'}{selectedSupervisor === 'ALL' && ufv.supervisor ? ` • ${ufv.supervisor}` : ''})
+                  {ufv.ufvName} — {ufv.potenciaUfv || ''} [{ufv.inversorModelo || 'Geral'}{ufv.potenciaInversor ? ` • ${ufv.potenciaInversor} kW` : ''}]{selectedSupervisor === 'ALL' && ufv.supervisor ? ` • ${ufv.supervisor}` : ''}
                 </option>
               ))}
             </select>
@@ -259,9 +417,11 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
               <input
                 type="text"
                 placeholder={
-                  selectedSupervisor === 'ALL'
-                    ? "Buscar UFV por nome ou modelo (ex: CAN, Huawei, Solis)..."
-                    : `Buscar entre as ${filteredUfvs.length} usinas de ${selectedSupervisor}...`
+                  selectedBrand !== 'ALL'
+                    ? `Buscar entre as ${filteredUfvs.length} usinas da marca ${selectedBrand}...`
+                    : selectedSupervisor !== 'ALL'
+                    ? `Buscar entre as ${filteredUfvs.length} usinas de ${selectedSupervisor}...`
+                    : "Buscar UFV por nome, modelo (Huawei, Canadian, Solis)..."
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -289,11 +449,16 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                   >
                     <div className="flex items-center space-x-1.5 min-w-0">
                       <span className="font-semibold truncate">{ufv.ufvName}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                        isSelected ? 'bg-slate-950/20 text-slate-950 font-bold' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        {ufv.inversorModelo || 'Geral'}
+                      </span>
                       {hasVariation && (
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
                           isSelected ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-amber-300 border border-slate-700'
                         }`} title={`Variações na UFV: ${uniqueVals.join(', ')} (${ufv.unit === 'kWp' ? 'Potência kWp' : 'str'})`}>
-                          {uniqueVals.join('/')} {ufv.unit === 'kWp' ? 'kWp (Potência)' : 'str'}
+                          {uniqueVals.join('/')} {ufv.unit === 'kWp' ? 'kWp' : 'str'}
                         </span>
                       )}
                     </div>
@@ -313,22 +478,37 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                 );
               })}
               {filteredUfvs.length === 0 && (
-                <div className="py-6 text-slate-400 text-xs text-center font-sans">
-                  Nenhuma UFV encontrada {selectedSupervisor !== 'ALL' ? `para o supervisor ${selectedSupervisor}` : ''} {searchQuery ? `com "${searchQuery}"` : ''}
+                <div className="py-6 text-slate-400 text-xs text-center font-sans space-y-2">
+                  <p>
+                    Nenhuma UFV encontrada {selectedBrand !== 'ALL' ? `com a marca ${selectedBrand}` : ''} {selectedSupervisor !== 'ALL' ? `para o supervisor ${selectedSupervisor}` : ''} {searchQuery ? `com "${searchQuery}"` : ''}
+                  </p>
+                  {(selectedBrand !== 'ALL' || selectedSupervisor !== 'ALL') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBrand('ALL');
+                        setSelectedSupervisor('ALL');
+                        setSearchQuery('');
+                      }}
+                      className="px-3 py-1 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-amber-600 cursor-pointer"
+                    >
+                      Limpar todos os filtros
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* 3. Seleção de Inversor */}
+          {/* 4. Seleção de Inversor */}
           <div className="space-y-2 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <label htmlFor="inverter-select" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
                 <Cpu className="w-3.5 h-3.5 text-amber-600" />
-                <span>3. Selecionar Inversor</span>
+                <span>4. Selecionar Inversor</span>
               </label>
               <span className="text-xs text-amber-700 font-semibold">
-                {currentUfv.strings.length} inversores alocados
+                {currentUfv.strings.length} inversores ({currentUfv.inversorModelo || 'Geral'})
               </span>
             </div>
 
@@ -413,7 +593,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
               <div>
                 <div className="text-amber-400 text-xs font-mono font-semibold uppercase tracking-wider mb-1 flex items-center space-x-1.5">
                   <Building2 className="w-3.5 h-3.5" />
-                  <span>{currentUfv.ufvName} &bull; {getInversorLabel(selectedInverterIndex, currentUfv)}</span>
+                  <span>{currentUfv.ufvName} &bull; {getInversorLabel(safeInverterIndex, currentUfv)}</span>
                 </div>
                 <div className="text-slate-300 text-sm font-medium">
                   {currentUnit === 'kWp' ? 'Potência do Inversor:' : 'Quantidade de Strings na Célula:'}
@@ -434,7 +614,7 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                   <span>Célula Localizada</span>
                 </div>
                 <div className="text-xs text-slate-400 font-mono pt-1">
-                  UFV: <strong className="text-amber-300">{currentUfv.ufvName}</strong> | Inv: <strong className="text-amber-300">{getInversorLabel(selectedInverterIndex, currentUfv)}</strong>
+                  UFV: <strong className="text-amber-300">{currentUfv.ufvName}</strong> | Inv: <strong className="text-amber-300">{getInversorLabel(safeInverterIndex, currentUfv)}</strong>
                 </div>
                 <div className="text-xs text-slate-300 font-mono pt-1.5 border-t border-slate-700/60 mt-1.5 flex items-center justify-start md:justify-end space-x-1.5">
                   <span className="text-slate-400 font-sans">Demanda Contratada:</span>
@@ -461,15 +641,21 @@ export const UfvLookupSimulator: React.FC<UfvLookupSimulatorProps> = ({ onGoToFo
                 </p>
               </div>
 
-              {/* 2. Modelo do Inversor */}
+              {/* 2. Modelo e Marca do Inversor */}
               <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 space-y-1">
                 <div className="flex items-center space-x-1.5 text-blue-400 text-[11px] font-semibold uppercase tracking-wider">
                   <Cpu className="w-3.5 h-3.5" />
-                  <span>Modelo do Inversor</span>
+                  <span>Marca e Modelo</span>
                 </div>
-                <div className="text-lg font-bold text-white font-mono truncate">
-                  {currentUfv.inversorModelo || 'Geral'}
-                  {currentUfv.potenciaInversor ? ` (${currentUfv.potenciaInversor} kW)` : ''}
+                <div className="flex items-center space-x-2 pt-0.5">
+                  <span className="text-lg font-bold text-white font-mono">
+                    {currentUfv.inversorModelo || 'Geral'}
+                  </span>
+                  {currentUfv.potenciaInversor && (
+                    <span className="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono font-bold px-1.5 py-0.5 rounded">
+                      {currentUfv.potenciaInversor} kW
+                    </span>
+                  )}
                 </div>
                 <p className="text-[10px] text-slate-400">
                   Fabricante & potência nominal
